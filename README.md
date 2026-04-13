@@ -115,6 +115,52 @@ forge test
 | `UniswapV2Migrator` | 1 |
 | `Counter` | 2 |
 
+### Deploy
+
+The Foundry deployment script (`script/DeployV2.s.sol`) deploys the full V2 stack in order: **WETH9 → UniswapV2Factory → UniswapV2Router02**.
+
+#### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `WETH` | Address of an existing wrapped-native token | _(deploys a new WETH9)_ |
+| `FEE_TO_SETTER` | Address that controls the protocol fee switch | Deployer address |
+
+#### Local (Anvil)
+
+```shell
+# Start a local node
+anvil
+
+# Deploy (new WETH9 will be created)
+forge script script/DeployV2.s.sol --broadcast --rpc-url http://127.0.0.1:8545 --private-key <PRIVATE_KEY>
+```
+
+#### Live Chain
+
+```shell
+# With an existing WETH address
+WETH=0x... FEE_TO_SETTER=0x... \
+  forge script script/DeployV2.s.sol \
+    --broadcast \
+    --rpc-url <RPC_URL> \
+    --private-key <PRIVATE_KEY> \
+    --verify \
+    --etherscan-api-key <API_KEY>
+```
+
+#### Dry Run (Simulation Only)
+
+```shell
+forge script script/DeployV2.s.sol --rpc-url <RPC_URL> --private-key <PRIVATE_KEY>
+```
+
+Omit `--broadcast` to simulate without sending transactions.
+
+#### Post-Deployment
+
+The script logs the **init code hash** for `UniswapV2Pair`. If you modified the pair contract, update the hash in `src/periphery/libraries/UniswapV2Library.sol` line 24 to match.
+
 ### Gas Snapshots
 
 ```shell
