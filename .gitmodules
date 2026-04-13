@@ -1,0 +1,6 @@
+[submodule "lib/forge-std"]
+	path = lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "lib/uniswap-solidity-lib"]
+	path = lib/uniswap-solidity-lib
+	url = https://github.com/aegis-finance/uniswap-solidity-lib
