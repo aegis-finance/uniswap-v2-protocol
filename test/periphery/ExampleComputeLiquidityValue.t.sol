@@ -8,14 +8,17 @@ import "@uniswap/v2-periphery/interfaces/IUniswapV2Router02.sol";
 
 interface IComputeLiquidityValue {
     function factory() external view returns (address);
+
     function getLiquidityValue(address tokenA, address tokenB, uint256 liquidityAmount)
         external
         view
         returns (uint256 tokenAAmount, uint256 tokenBAmount);
+
     function getReservesAfterArbitrage(address tokenA, address tokenB, uint256 truePriceTokenA, uint256 truePriceTokenB)
         external
         view
         returns (uint256 reserveA, uint256 reserveB);
+
     function getLiquidityValueAfterArbitrageToPrice(
         address tokenA,
         address tokenB,
@@ -23,6 +26,7 @@ interface IComputeLiquidityValue {
         uint256 truePriceTokenB,
         uint256 liquidityAmount
     ) external view returns (uint256 tokenAAmount, uint256 tokenBAmount);
+
     function getGasCostOfGetLiquidityValueAfterArbitrageToPrice(
         address tokenA,
         address tokenB,
@@ -34,7 +38,9 @@ interface IComputeLiquidityValue {
 
 interface IERC20CLV {
     function approve(address, uint256) external returns (bool);
+
     function balanceOf(address) external view returns (uint256);
+
     function transfer(address, uint256) external returns (bool);
 }
 
@@ -67,10 +73,13 @@ contract ExampleComputeLiquidityValueTest is Test {
         factory.createPair(tA, tB);
         pair = IUniswapV2Pair(factory.getPair(tA, tB));
 
-        if (pair.token0() == tA) token0addr = tA;
-        token1addr = tB;
-        else token0addr = tB;
-        token1addr = tA;
+        if (pair.token0() == tA) {
+            token0addr = tA;
+            token1addr = tB;
+        } else {
+            token0addr = tB;
+            token1addr = tA;
+        }
 
         address weth = deployCode("WETH9.sol:WETH9");
 
