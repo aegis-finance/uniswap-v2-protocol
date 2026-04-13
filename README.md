@@ -71,6 +71,14 @@ git clone --recurse-submodules https://github.com/aegis-finance/uniswap-v2-proto
 forge build
 ```
 
+## Update init code hash
+
+```bash
+forge inspect UniswapV2Pair bytecode | cast keccak
+```
+
+in `src/periphery/libraries/UniswapV2Library.sol` line 24, replacing the existing `INIT_CODE_HASH` value.
+
 ### Test
 
 ```shell
