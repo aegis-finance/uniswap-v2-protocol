@@ -24,13 +24,7 @@ interface IWETH9Mig {
 }
 
 interface IMigrator {
-    function migrate(
-        address token,
-        uint amountTokenMin,
-        uint amountETHMin,
-        address to,
-        uint deadline
-    ) external;
+    function migrate(address token, uint256 amountTokenMin, uint256 amountETHMin, address to, uint256 deadline) external;
 }
 
 /// @dev Forge port of v2-periphery/test/UniswapV2Migrator.spec.ts
@@ -58,42 +52,24 @@ contract UniswapV2MigratorTest is Test {
         factoryV1 = new MockUniswapV1Factory();
 
         // Deploy V2 factory and router
-        factoryV2 = IUniswapV2Factory(
-            deployCode(
-                "UniswapV2Factory.sol:UniswapV2Factory",
-                abi.encode(address(this))
-            )
-        );
+        factoryV2 = IUniswapV2Factory(deployCode("UniswapV2Factory.sol:UniswapV2Factory", abi.encode(address(this))));
         router01 = IUniswapV2Router01(
-            deployCode(
-                "UniswapV2Router01.sol:UniswapV2Router01",
-                abi.encode(address(factoryV2), address(weth))
-            )
+            deployCode("UniswapV2Router01.sol:UniswapV2Router01", abi.encode(address(factoryV2), address(weth)))
         );
 
         // Deploy Migrator
         migrator = IMigrator(
-            deployCode(
-                "UniswapV2Migrator.sol:UniswapV2Migrator",
-                abi.encode(address(factoryV1), address(router01))
-            )
+            deployCode("UniswapV2Migrator.sol:UniswapV2Migrator", abi.encode(address(factoryV1), address(router01)))
         );
 
         // Deploy WETHPartner token and create V1 exchange
-        wethPartner = IERC20MigMin(
-            deployCode(
-                "src/periphery/test/ERC20.sol:ERC20",
-                abi.encode(uint256(10_000e18))
-            )
-        );
+        wethPartner = IERC20MigMin(deployCode("src/periphery/test/ERC20.sol:ERC20", abi.encode(uint256(10_000e18))));
         address exchAddr = factoryV1.createExchange(address(wethPartner));
         wethExchangeV1 = MockUniswapV1Exchange(payable(exchAddr));
 
         // Create V2 WETH/WETHPartner pair
         factoryV2.createPair(address(weth), address(wethPartner));
-        wethPair = IUniswapV2Pair(
-            factoryV2.getPair(address(weth), address(wethPartner))
-        );
+        wethPair = IUniswapV2Pair(factoryV2.getPair(address(weth), address(wethPartner)));
     }
 
     /// @dev Forge port of the single "migrate" test in UniswapV2Migrator.spec.ts
@@ -103,11 +79,7 @@ contract UniswapV2MigratorTest is Test {
 
         // Add liquidity to V1 (1 token : 4 ETH)
         wethPartner.approve(address(wethExchangeV1), type(uint256).max);
-        wethExchangeV1.addLiquidity{value: ethAmount}(
-            1,
-            wethPartnerAmount,
-            type(uint256).max
-        );
+        wethExchangeV1.addLiquidity{value: ethAmount}(1, wethPartnerAmount, type(uint256).max);
 
         // V1 LP minted = msg.value = 4e18
         assertEq(wethExchangeV1.balanceOf(address(this)), ethAmount);
@@ -123,24 +95,12 @@ contract UniswapV2MigratorTest is Test {
         emit IUniswapV2Pair.Transfer(address(0), address(0), MINIMUM_LIQUIDITY);
 
         vm.expectEmit(true, true, false, true, address(wethPair));
-        emit IUniswapV2Pair.Transfer(
-            address(0),
-            address(this),
-            expectedLiquidity - MINIMUM_LIQUIDITY
-        );
+        emit IUniswapV2Pair.Transfer(address(0), address(this), expectedLiquidity - MINIMUM_LIQUIDITY);
 
         vm.expectEmit(false, false, false, true, address(wethPair));
         emit IUniswapV2Pair.Sync(
-            uint112(
-                pairToken0 == address(wethPartner)
-                    ? wethPartnerAmount
-                    : ethAmount
-            ),
-            uint112(
-                pairToken0 == address(wethPartner)
-                    ? ethAmount
-                    : wethPartnerAmount
-            )
+            uint112(pairToken0 == address(wethPartner) ? wethPartnerAmount : ethAmount),
+            uint112(pairToken0 == address(wethPartner) ? ethAmount : wethPartnerAmount)
         );
 
         vm.expectEmit(true, false, false, true, address(wethPair));
@@ -150,18 +110,9 @@ contract UniswapV2MigratorTest is Test {
             pairToken0 == address(wethPartner) ? ethAmount : wethPartnerAmount
         );
 
-        migrator.migrate(
-            address(wethPartner),
-            wethPartnerAmount,
-            ethAmount,
-            address(this),
-            type(uint256).max
-        );
+        migrator.migrate(address(wethPartner), wethPartnerAmount, ethAmount, address(this), type(uint256).max);
 
-        assertEq(
-            wethPair.balanceOf(address(this)),
-            expectedLiquidity - MINIMUM_LIQUIDITY
-        );
+        assertEq(wethPair.balanceOf(address(this)), expectedLiquidity - MINIMUM_LIQUIDITY);
         assertEq(wethPair.totalSupply(), expectedLiquidity);
     }
 }

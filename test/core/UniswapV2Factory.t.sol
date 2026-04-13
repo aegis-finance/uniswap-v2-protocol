@@ -15,9 +15,7 @@ contract UniswapV2FactoryTest is Test {
 
     function setUp() public {
         other = makeAddr("other");
-        factory = IUniswapV2Factory(
-            deployCode("UniswapV2Factory.sol:UniswapV2Factory", abi.encode(address(this)))
-        );
+        factory = IUniswapV2Factory(deployCode("UniswapV2Factory.sol:UniswapV2Factory", abi.encode(address(this))));
     }
 
     // -------------------------------------------------------------------------
@@ -32,12 +30,7 @@ contract UniswapV2FactoryTest is Test {
             uint160(
                 uint256(
                     keccak256(
-                        abi.encodePacked(
-                            hex"ff",
-                            address(factory),
-                            keccak256(abi.encodePacked(t0, t1)),
-                            initCodeHash
-                        )
+                        abi.encodePacked(hex"ff", address(factory), keccak256(abi.encodePacked(t0, t1)), initCodeHash)
                     )
                 )
             )
@@ -48,8 +41,8 @@ contract UniswapV2FactoryTest is Test {
     // Initial state
     // -------------------------------------------------------------------------
     function test_initialState() public view {
-        assertEq(factory.feeTo(),         address(0));
-        assertEq(factory.feeToSetter(),   address(this));
+        assertEq(factory.feeTo(), address(0));
+        assertEq(factory.feeToSetter(), address(this));
         assertEq(factory.allPairsLength(), 0);
     }
 
@@ -67,14 +60,14 @@ contract UniswapV2FactoryTest is Test {
         // Bidirectional lookup
         assertEq(factory.getPair(TOKEN_A, TOKEN_B), expectedPair);
         assertEq(factory.getPair(TOKEN_B, TOKEN_A), expectedPair);
-        assertEq(factory.allPairs(0),               expectedPair);
-        assertEq(factory.allPairsLength(),           1);
+        assertEq(factory.allPairs(0), expectedPair);
+        assertEq(factory.allPairsLength(), 1);
 
         // Pair internal state
         IUniswapV2Pair pair = IUniswapV2Pair(expectedPair);
         assertEq(pair.factory(), address(factory));
-        assertEq(pair.token0(),  TOKEN_A);
-        assertEq(pair.token1(),  TOKEN_B);
+        assertEq(pair.token0(), TOKEN_A);
+        assertEq(pair.token1(), TOKEN_B);
     }
 
     function test_createPair() public {

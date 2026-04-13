@@ -50,40 +50,24 @@ contract ExampleFlashSwapTest is Test {
         factoryV1 = new MockUniswapV1Factory();
 
         // Deploy V2 factory
-        factoryV2 = IUniswapV2Factory(
-            deployCode(
-                "UniswapV2Factory.sol:UniswapV2Factory",
-                abi.encode(address(this))
-            )
-        );
+        factoryV2 = IUniswapV2Factory(deployCode("UniswapV2Factory.sol:UniswapV2Factory", abi.encode(address(this))));
 
         // Deploy a minimal router (only used to satisfy ExampleFlashSwap constructor's WETH() call)
-        router = deployCode(
-            "UniswapV2Router01.sol:UniswapV2Router01",
-            abi.encode(address(factoryV2), address(weth))
-        );
+        router = deployCode("UniswapV2Router01.sol:UniswapV2Router01", abi.encode(address(factoryV2), address(weth)));
 
         // Deploy WETHPartner ERC20 token
-        wethPartner = IERC20Flash(
-            deployCode(
-                "src/periphery/test/ERC20.sol:ERC20",
-                abi.encode(uint256(10_000e18))
-            )
-        );
+        wethPartner = IERC20Flash(deployCode("src/periphery/test/ERC20.sol:ERC20", abi.encode(uint256(10_000e18))));
 
         // Create V1 exchange for WETHPartner
         factoryV1.createExchange(address(wethPartner));
 
         // Create V2 WETH/WETHPartner pair
         factoryV2.createPair(address(weth), address(wethPartner));
-        wethPair = IUniswapV2Pair(
-            factoryV2.getPair(address(weth), address(wethPartner))
-        );
+        wethPair = IUniswapV2Pair(factoryV2.getPair(address(weth), address(wethPartner)));
 
         // Deploy ExampleFlashSwap(factory_v2, factory_v1, router)
         flashSwapExample = deployCode(
-            "ExampleFlashSwap.sol:ExampleFlashSwap",
-            abi.encode(address(factoryV2), address(factoryV1), router)
+            "ExampleFlashSwap.sol:ExampleFlashSwap", abi.encode(address(factoryV2), address(factoryV1), router)
         );
     }
 
@@ -91,15 +75,9 @@ contract ExampleFlashSwapTest is Test {
     // Helper: add V1 liquidity (ETH+WETHPartner)
     // -------------------------------------------------------------------------
     function _addV1Liquidity(uint256 tokenAmount, uint256 ethAmount) internal {
-        MockUniswapV1Exchange v1Exchange = MockUniswapV1Exchange(
-            payable(factoryV1.getExchange(address(wethPartner)))
-        );
+        MockUniswapV1Exchange v1Exchange = MockUniswapV1Exchange(payable(factoryV1.getExchange(address(wethPartner))));
         wethPartner.approve(address(v1Exchange), type(uint256).max);
-        v1Exchange.addLiquidity{value: ethAmount}(
-            1,
-            tokenAmount,
-            type(uint256).max
-        );
+        v1Exchange.addLiquidity{value: ethAmount}(1, tokenAmount, type(uint256).max);
     }
 
     // -------------------------------------------------------------------------
@@ -131,12 +109,7 @@ contract ExampleFlashSwapTest is Test {
         uint256 amount0 = token0 == address(wethPartner) ? 0 : arbitrageAmount;
         uint256 amount1 = token0 == address(wethPartner) ? arbitrageAmount : 0;
 
-        wethPair.swap(
-            amount0,
-            amount1,
-            flashSwapExample,
-            abi.encode(uint256(1))
-        );
+        wethPair.swap(amount0, amount1, flashSwapExample, abi.encode(uint256(1)));
 
         uint256 balanceAfter = wethPartner.balanceOf(address(this));
         uint256 profit = balanceAfter - balanceBefore;
@@ -145,17 +118,10 @@ contract ExampleFlashSwapTest is Test {
         assertEq(profit / 1e18, 69, "profit should be ~69 tokens");
 
         // Sanity: V1 price should have dropped (V2 price risen)
-        MockUniswapV1Exchange v1Exchange = MockUniswapV1Exchange(
-            payable(factoryV1.getExchange(address(wethPartner)))
-        );
+        MockUniswapV1Exchange v1Exchange = MockUniswapV1Exchange(payable(factoryV1.getExchange(address(wethPartner))));
         uint256 v1TokenReserve = wethPartner.balanceOf(address(v1Exchange));
         uint256 v1EthReserve = address(v1Exchange).balance;
-        assertApproxEqAbs(
-            v1TokenReserve / v1EthReserve,
-            165,
-            5,
-            "V1 price should be ~165"
-        );
+        assertApproxEqAbs(v1TokenReserve / v1EthReserve, 165, 5, "V1 price should be ~165");
     }
 
     // -------------------------------------------------------------------------
@@ -177,34 +143,18 @@ contract ExampleFlashSwapTest is Test {
         uint256 amount0 = token0 == address(wethPartner) ? arbitrageAmount : 0;
         uint256 amount1 = token0 == address(wethPartner) ? 0 : arbitrageAmount;
 
-        wethPair.swap(
-            amount0,
-            amount1,
-            flashSwapExample,
-            abi.encode(uint256(1))
-        );
+        wethPair.swap(amount0, amount1, flashSwapExample, abi.encode(uint256(1)));
 
         uint256 balanceAfter = address(this).balance;
         uint256 profit = balanceAfter - balanceBefore;
 
         // JS expects profit == 548043441089763649 wei
-        assertEq(
-            profit,
-            548_043_441_089_763_649,
-            "profit should be ~0.548 ETH"
-        );
+        assertEq(profit, 548_043_441_089_763_649, "profit should be ~0.548 ETH");
 
         // Sanity: V1 price should have risen, V2 price dropped
-        MockUniswapV1Exchange v1Exchange = MockUniswapV1Exchange(
-            payable(factoryV1.getExchange(address(wethPartner)))
-        );
+        MockUniswapV1Exchange v1Exchange = MockUniswapV1Exchange(payable(factoryV1.getExchange(address(wethPartner))));
         uint256 v1TokenReserve = wethPartner.balanceOf(address(v1Exchange));
         uint256 v1EthReserve = address(v1Exchange).balance;
-        assertApproxEqAbs(
-            v1TokenReserve / v1EthReserve,
-            143,
-            5,
-            "V1 price should be ~143"
-        );
+        assertApproxEqAbs(v1TokenReserve / v1EthReserve, 143, 5, "V1 price should be ~143");
     }
 }

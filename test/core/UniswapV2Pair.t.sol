@@ -19,9 +19,9 @@ contract UniswapV2PairTest is Test {
     uint256 constant MINIMUM_LIQUIDITY = 1_000;
 
     IUniswapV2Factory factory;
-    IUniswapV2Pair    pair;
-    IERC20Minimal     token0;
-    IERC20Minimal     token1;
+    IUniswapV2Pair pair;
+    IERC20Minimal token0;
+    IERC20Minimal token1;
 
     address other;
 
@@ -31,9 +31,7 @@ contract UniswapV2PairTest is Test {
     function setUp() public {
         other = makeAddr("other");
 
-        factory = IUniswapV2Factory(
-            deployCode("UniswapV2Factory.sol:UniswapV2Factory", abi.encode(address(this)))
-        );
+        factory = IUniswapV2Factory(deployCode("UniswapV2Factory.sol:UniswapV2Factory", abi.encode(address(this))));
 
         // Deploy two ERC20 test tokens (periphery ERC20: "Test Token")
         address tokenA = deployCode("src/periphery/test/ERC20.sol:ERC20", abi.encode(uint256(10_000e18)));
@@ -94,7 +92,7 @@ contract UniswapV2PairTest is Test {
 
         pair.mint(address(this));
 
-        assertEq(pair.totalSupply(),            expectedLiquidity);
+        assertEq(pair.totalSupply(), expectedLiquidity);
         assertEq(pair.balanceOf(address(this)), expectedLiquidity - MINIMUM_LIQUIDITY);
         assertEq(token0.balanceOf(address(pair)), token0Amount);
         assertEq(token1.balanceOf(address(pair)), token1Amount);
@@ -135,23 +133,40 @@ contract UniswapV2PairTest is Test {
         (r0, r1) = (r0, r1);
     }
 
-    function test_getInputPrice_0() public { _assertGetInputPrice(1e18, 5e18,    10e18, 1_662_497_915_624_478_906); }
-    function test_getInputPrice_1() public { _assertGetInputPrice(1e18, 10e18,    5e18,   453_305_446_940_074_565); }
-    function test_getInputPrice_2() public { _assertGetInputPrice(2e18,  5e18,   10e18, 2_851_015_155_847_869_602); }
-    function test_getInputPrice_3() public { _assertGetInputPrice(2e18, 10e18,    5e18,   831_248_957_812_239_453); }
-    function test_getInputPrice_4() public { _assertGetInputPrice(1e18, 10e18,   10e18,   906_610_893_880_149_131); }
-    function test_getInputPrice_5() public { _assertGetInputPrice(1e18, 100e18, 100e18,   987_158_034_397_061_298); }
-    function test_getInputPrice_6() public { _assertGetInputPrice(1e18, 1000e18,1000e18,  996_006_981_039_903_216); }
+    function test_getInputPrice_0() public {
+        _assertGetInputPrice(1e18, 5e18, 10e18, 1_662_497_915_624_478_906);
+    }
+
+    function test_getInputPrice_1() public {
+        _assertGetInputPrice(1e18, 10e18, 5e18, 453_305_446_940_074_565);
+    }
+
+    function test_getInputPrice_2() public {
+        _assertGetInputPrice(2e18, 5e18, 10e18, 2_851_015_155_847_869_602);
+    }
+
+    function test_getInputPrice_3() public {
+        _assertGetInputPrice(2e18, 10e18, 5e18, 831_248_957_812_239_453);
+    }
+
+    function test_getInputPrice_4() public {
+        _assertGetInputPrice(1e18, 10e18, 10e18, 906_610_893_880_149_131);
+    }
+
+    function test_getInputPrice_5() public {
+        _assertGetInputPrice(1e18, 100e18, 100e18, 987_158_034_397_061_298);
+    }
+
+    function test_getInputPrice_6() public {
+        _assertGetInputPrice(1e18, 1000e18, 1000e18, 996_006_981_039_903_216);
+    }
 
     // -------------------------------------------------------------------------
     // optimistic: trying to take exact output (fee still satisfied)
     // -------------------------------------------------------------------------
-    function _assertOptimistic(
-        uint256 outputAmount,
-        uint256 token0Amount,
-        uint256 token1Amount,
-        uint256 inputAmount
-    ) internal {
+    function _assertOptimistic(uint256 outputAmount, uint256 token0Amount, uint256 token1Amount, uint256 inputAmount)
+        internal
+    {
         _addLiquidity(token0Amount, token1Amount);
         token0.transfer(address(pair), inputAmount);
 
@@ -164,10 +179,21 @@ contract UniswapV2PairTest is Test {
         pair.burn(address(this));
     }
 
-    function test_optimistic_0() public { _assertOptimistic(997_000_000_000_000_000,  5e18, 10e18, 1e18); }
-    function test_optimistic_1() public { _assertOptimistic(997_000_000_000_000_000, 10e18,  5e18, 1e18); }
-    function test_optimistic_2() public { _assertOptimistic(997_000_000_000_000_000,  5e18,  5e18, 1e18); }
-    function test_optimistic_3() public { _assertOptimistic(1e18, 5e18, 5e18, 1_003_009_027_081_243_732); }
+    function test_optimistic_0() public {
+        _assertOptimistic(997_000_000_000_000_000, 5e18, 10e18, 1e18);
+    }
+
+    function test_optimistic_1() public {
+        _assertOptimistic(997_000_000_000_000_000, 10e18, 5e18, 1e18);
+    }
+
+    function test_optimistic_2() public {
+        _assertOptimistic(997_000_000_000_000_000, 5e18, 5e18, 1e18);
+    }
+
+    function test_optimistic_3() public {
+        _assertOptimistic(1e18, 5e18, 5e18, 1_003_009_027_081_243_732);
+    }
 
     // -------------------------------------------------------------------------
     // swap:token0
@@ -177,7 +203,7 @@ contract UniswapV2PairTest is Test {
         uint256 token1Amount = 10e18;
         _addLiquidity(token0Amount, token1Amount);
 
-        uint256 swapAmount          = 1e18;
+        uint256 swapAmount = 1e18;
         uint256 expectedOutputAmount = 1_662_497_915_624_478_906;
 
         token0.transfer(address(pair), swapAmount);
@@ -213,7 +239,7 @@ contract UniswapV2PairTest is Test {
         uint256 token1Amount = 10e18;
         _addLiquidity(token0Amount, token1Amount);
 
-        uint256 swapAmount          = 1e18;
+        uint256 swapAmount = 1e18;
         uint256 expectedOutputAmount = 453_305_446_940_074_565;
 
         token1.transfer(address(pair), swapAmount);
@@ -269,7 +295,7 @@ contract UniswapV2PairTest is Test {
         pair.burn(address(this));
 
         assertEq(pair.balanceOf(address(this)), 0);
-        assertEq(pair.totalSupply(),            MINIMUM_LIQUIDITY);
+        assertEq(pair.totalSupply(), MINIMUM_LIQUIDITY);
         assertEq(token0.balanceOf(address(pair)), 1000);
         assertEq(token1.balanceOf(address(pair)), 1000);
 
@@ -296,7 +322,10 @@ contract UniswapV2PairTest is Test {
         (uint256 initialPrice0, uint256 initialPrice1) = _encodePrice(token0Amount, token1Amount);
         assertEq(pair.price0CumulativeLast(), initialPrice0);
         assertEq(pair.price1CumulativeLast(), initialPrice1);
-        {(,, uint32 ts1) = pair.getReserves(); assertEq(uint256(ts1), blockTimestamp + 1);}
+        {
+            (,, uint32 ts1) = pair.getReserves();
+            assertEq(uint256(ts1), blockTimestamp + 1);
+        }
 
         // Swap to move reserves to (6e18, 2e18), 10 seconds after initial mint
         uint256 swapAmount = 3e18;
@@ -306,7 +335,10 @@ contract UniswapV2PairTest is Test {
 
         assertEq(pair.price0CumulativeLast(), initialPrice0 * 10);
         assertEq(pair.price1CumulativeLast(), initialPrice1 * 10);
-        {(,, uint32 ts10) = pair.getReserves(); assertEq(uint256(ts10), blockTimestamp + 10);}
+        {
+            (,, uint32 ts10) = pair.getReserves();
+            assertEq(uint256(ts10), blockTimestamp + 10);
+        }
 
         // Advance another 10 seconds, sync to snapshot second price period
         (uint256 newPrice0, uint256 newPrice1) = _encodePrice(6e18, 2e18);
@@ -315,7 +347,10 @@ contract UniswapV2PairTest is Test {
 
         assertEq(pair.price0CumulativeLast(), initialPrice0 * 10 + newPrice0 * 10);
         assertEq(pair.price1CumulativeLast(), initialPrice1 * 10 + newPrice1 * 10);
-        {(,, uint32 ts20) = pair.getReserves(); assertEq(uint256(ts20), blockTimestamp + 20);}
+        {
+            (,, uint32 ts20) = pair.getReserves();
+            assertEq(uint256(ts20), blockTimestamp + 20);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -326,7 +361,7 @@ contract UniswapV2PairTest is Test {
         uint256 token1Amount = 1_000e18;
         _addLiquidity(token0Amount, token1Amount);
 
-        uint256 swapAmount          = 1e18;
+        uint256 swapAmount = 1e18;
         uint256 expectedOutputAmount = 996_006_981_039_903_216;
         token1.transfer(address(pair), swapAmount);
         pair.swap(expectedOutputAmount, 0, address(this), "");
@@ -353,7 +388,7 @@ contract UniswapV2PairTest is Test {
         uint256 token1Amount = 1_000e18;
         _addLiquidity(token0Amount, token1Amount);
 
-        uint256 swapAmount          = 1e18;
+        uint256 swapAmount = 1e18;
         uint256 expectedOutputAmount = 996_006_981_039_903_216;
         token1.transfer(address(pair), swapAmount);
         pair.swap(expectedOutputAmount, 0, address(this), "");
@@ -363,8 +398,8 @@ contract UniswapV2PairTest is Test {
         pair.burn(address(this));
 
         // Protocol fee LP tokens minted to `other`
-        assertEq(pair.totalSupply(),       MINIMUM_LIQUIDITY + 249_750_499_251_388);
-        assertEq(pair.balanceOf(other),    249_750_499_251_388);
+        assertEq(pair.totalSupply(), MINIMUM_LIQUIDITY + 249_750_499_251_388);
+        assertEq(pair.balanceOf(other), 249_750_499_251_388);
 
         // Residual token balances in pair (1000 MINIMUM + fee dust)
         assertEq(token0.balanceOf(address(pair)), 1000 + 249_501_683_697_445);

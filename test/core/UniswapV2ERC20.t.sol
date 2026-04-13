@@ -18,7 +18,7 @@ contract UniswapV2ERC20Test is Test {
 
     function setUp() public {
         wallet = vm.addr(walletKey);
-        other  = makeAddr("other");
+        other = makeAddr("other");
 
         // Deploy core LP token wrapper; test contract is the minter
         address t = deployCode("src/core/test/ERC20.sol:ERC20", abi.encode(TOTAL_SUPPLY));
@@ -32,11 +32,11 @@ contract UniswapV2ERC20Test is Test {
     // name / symbol / decimals / totalSupply / balanceOf / DOMAIN_SEPARATOR / PERMIT_TYPEHASH
     // -------------------------------------------------------------------------
     function test_metadata() public view {
-        assertEq(token.name(),     "Uniswap V2");
-        assertEq(token.symbol(),   "UNI-V2");
+        assertEq(token.name(), "Uniswap V2");
+        assertEq(token.symbol(), "UNI-V2");
         assertEq(token.decimals(), 18);
-        assertEq(token.totalSupply(),       TOTAL_SUPPLY);
-        assertEq(token.balanceOf(wallet),   TOTAL_SUPPLY);
+        assertEq(token.totalSupply(), TOTAL_SUPPLY);
+        assertEq(token.balanceOf(wallet), TOTAL_SUPPLY);
 
         bytes32 expectedDomainSep = keccak256(
             abi.encode(
@@ -79,7 +79,7 @@ contract UniswapV2ERC20Test is Test {
         token.transfer(other, TEST_AMOUNT);
 
         assertEq(token.balanceOf(wallet), TOTAL_SUPPLY - TEST_AMOUNT);
-        assertEq(token.balanceOf(other),  TEST_AMOUNT);
+        assertEq(token.balanceOf(other), TEST_AMOUNT);
     }
 
     function test_transfer_revertInsufficientBalance() public {
@@ -107,9 +107,9 @@ contract UniswapV2ERC20Test is Test {
         vm.prank(other);
         token.transferFrom(wallet, other, TEST_AMOUNT);
 
-        assertEq(token.allowance(wallet, other),  0);
-        assertEq(token.balanceOf(wallet),          TOTAL_SUPPLY - TEST_AMOUNT);
-        assertEq(token.balanceOf(other),            TEST_AMOUNT);
+        assertEq(token.allowance(wallet, other), 0);
+        assertEq(token.balanceOf(wallet), TOTAL_SUPPLY - TEST_AMOUNT);
+        assertEq(token.balanceOf(other), TEST_AMOUNT);
     }
 
     function test_transferFrom_maxAllowanceNotDecremented() public {
@@ -122,29 +122,18 @@ contract UniswapV2ERC20Test is Test {
 
         assertEq(token.allowance(wallet, other), type(uint256).max);
         assertEq(token.balanceOf(wallet), TOTAL_SUPPLY - TEST_AMOUNT);
-        assertEq(token.balanceOf(other),  TEST_AMOUNT);
+        assertEq(token.balanceOf(other), TEST_AMOUNT);
     }
 
     // -------------------------------------------------------------------------
     // permit (EIP-2612)
     // -------------------------------------------------------------------------
     function test_permit() public {
-        uint256 nonce    = token.nonces(wallet);
+        uint256 nonce = token.nonces(wallet);
         uint256 deadline = type(uint256).max;
 
-        bytes32 structHash = keccak256(
-            abi.encode(
-                token.PERMIT_TYPEHASH(),
-                wallet,
-                other,
-                TEST_AMOUNT,
-                nonce,
-                deadline
-            )
-        );
-        bytes32 digest = keccak256(
-            abi.encodePacked("\x19\x01", token.DOMAIN_SEPARATOR(), structHash)
-        );
+        bytes32 structHash = keccak256(abi.encode(token.PERMIT_TYPEHASH(), wallet, other, TEST_AMOUNT, nonce, deadline));
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", token.DOMAIN_SEPARATOR(), structHash));
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(walletKey, digest);
 
@@ -165,6 +154,6 @@ contract UniswapV2ERC20Test is Test {
         vm.prank(wallet);
         token.transfer(other, amount);
         assertEq(token.balanceOf(wallet), TOTAL_SUPPLY - amount);
-        assertEq(token.balanceOf(other),  amount);
+        assertEq(token.balanceOf(other), amount);
     }
 }

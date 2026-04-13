@@ -8,20 +8,13 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 interface ISlidingWindowOracle {
     function update(address tokenA, address tokenB) external;
 
-    function consult(
-        address tokenIn,
-        uint amountIn,
-        address tokenOut
-    ) external view returns (uint amountOut);
+    function consult(address tokenIn, uint256 amountIn, address tokenOut) external view returns (uint256 amountOut);
 
-    function observationIndexOf(uint timestamp) external view returns (uint8);
+    function observationIndexOf(uint256 timestamp) external view returns (uint8);
 
-    function pairObservations(
-        address pair,
-        uint index
-    ) external view returns (uint, uint, uint);
+    function pairObservations(address pair, uint256 index) external view returns (uint256, uint256, uint256);
 
-    function periodSize() external view returns (uint);
+    function periodSize() external view returns (uint256);
 }
 
 /// @dev Forge port of v2-periphery/test/ExampleSlidingWindowOracle.spec.ts
@@ -43,10 +36,7 @@ contract ExampleSlidingWindowOracleTest is Test {
         return uint8((ts / PERIOD_SIZE) % GRANULARITY);
     }
 
-    function _encodePrice(
-        uint256 r0,
-        uint256 r1
-    ) internal pure returns (uint256 p0, uint256 p1) {
+    function _encodePrice(uint256 r0, uint256 r1) internal pure returns (uint256 p0, uint256 p1) {
         p0 = (r1 << 112) / r0;
         p1 = (r0 << 112) / r1;
     }
@@ -54,23 +44,17 @@ contract ExampleSlidingWindowOracleTest is Test {
     // 1 Jan 2020 00:00 UTC — must not be 0 and not 86400
     uint256 constant START_TIME = 1_577_836_800;
 
-    function _deployOracle(
-        uint256 windowSize,
-        uint8 granularity
-    ) internal returns (ISlidingWindowOracle) {
-        return
-            ISlidingWindowOracle(
-                deployCode(
-                    "ExampleSlidingWindowOracle.sol:ExampleSlidingWindowOracle",
-                    abi.encode(address(factory), windowSize, granularity)
-                )
-            );
+    function _deployOracle(uint256 windowSize, uint8 granularity) internal returns (ISlidingWindowOracle) {
+        return ISlidingWindowOracle(
+            deployCode(
+                "ExampleSlidingWindowOracle.sol:ExampleSlidingWindowOracle",
+                abi.encode(address(factory), windowSize, granularity)
+            )
+        );
     }
 
     function _transfer(address token, address to, uint256 amount) internal {
-        (bool ok, ) = token.call(
-            abi.encodeWithSignature("transfer(address,uint256)", to, amount)
-        );
+        (bool ok,) = token.call(abi.encodeWithSignature("transfer(address,uint256)", to, amount));
         require(ok);
     }
 
@@ -82,21 +66,10 @@ contract ExampleSlidingWindowOracleTest is Test {
 
     function setUp() public {
         // Deploy tokens, factory, pair
-        address tA = deployCode(
-            "src/periphery/test/ERC20.sol:ERC20",
-            abi.encode(uint256(100_000e18))
-        );
-        address tB = deployCode(
-            "src/periphery/test/ERC20.sol:ERC20",
-            abi.encode(uint256(100_000e18))
-        );
+        address tA = deployCode("src/periphery/test/ERC20.sol:ERC20", abi.encode(uint256(100_000e18)));
+        address tB = deployCode("src/periphery/test/ERC20.sol:ERC20", abi.encode(uint256(100_000e18)));
 
-        factory = IUniswapV2Factory(
-            deployCode(
-                "UniswapV2Factory.sol:UniswapV2Factory",
-                abi.encode(address(this))
-            )
-        );
+        factory = IUniswapV2Factory(deployCode("UniswapV2Factory.sol:UniswapV2Factory", abi.encode(address(this))));
         factory.createPair(tA, tB);
         pair = IUniswapV2Pair(factory.getPair(tA, tB));
 
@@ -131,10 +104,7 @@ contract ExampleSlidingWindowOracleTest is Test {
         ISlidingWindowOracle oracle = _deployOracle(WINDOW_SIZE, GRANULARITY);
         assertEq(oracle.periodSize(), 3600);
 
-        ISlidingWindowOracle oracle2 = _deployOracle(
-            WINDOW_SIZE * 2,
-            GRANULARITY / 2
-        );
+        ISlidingWindowOracle oracle2 = _deployOracle(WINDOW_SIZE * 2, GRANULARITY / 2);
         assertEq(oracle2.periodSize(), 3600 * 4);
     }
 
@@ -166,20 +136,9 @@ contract ExampleSlidingWindowOracleTest is Test {
 
     function test_observationIndexOf_matchesOffline() public {
         ISlidingWindowOracle oracle = _deployOracle(WINDOW_SIZE, GRANULARITY);
-        uint256[7] memory timestamps = [
-            uint256(0),
-            5000,
-            1000,
-            25000,
-            86399,
-            86400,
-            86401
-        ];
-        for (uint i; i < timestamps.length; i++) {
-            assertEq(
-                oracle.observationIndexOf(timestamps[i]),
-                _observationIndexOf(timestamps[i])
-            );
+        uint256[7] memory timestamps = [uint256(0), 5000, 1000, 25000, 86399, 86400, 86401];
+        for (uint256 i; i < timestamps.length; i++) {
+            assertEq(oracle.observationIndexOf(timestamps[i]), _observationIndexOf(timestamps[i]));
         }
     }
 
@@ -196,13 +155,11 @@ contract ExampleSlidingWindowOracleTest is Test {
         ISlidingWindowOracle oracle = _deployOracle(WINDOW_SIZE, GRANULARITY);
         _addLiquidity(DEFAULT_TOKEN0, DEFAULT_TOKEN1);
 
-        (, , uint32 blockTs) = pair.getReserves();
+        (,, uint32 blockTs) = pair.getReserves();
         oracle.update(token0addr, token1addr);
 
-        (uint obsTs, uint obsCum0, uint obsCum1) = oracle.pairObservations(
-            address(pair),
-            _observationIndexOf(blockTs)
-        );
+        (uint256 obsTs, uint256 obsCum0, uint256 obsCum1) =
+            oracle.pairObservations(address(pair), _observationIndexOf(blockTs));
 
         assertEq(obsTs, blockTs);
         assertEq(obsCum0, pair.price0CumulativeLast());
@@ -214,18 +171,12 @@ contract ExampleSlidingWindowOracleTest is Test {
         _addLiquidity(DEFAULT_TOKEN0, DEFAULT_TOKEN1);
 
         oracle.update(token0addr, token1addr);
-        (uint ts0, uint c0_0, uint c1_0) = oracle.pairObservations(
-            address(pair),
-            _observationIndexOf(0)
-        );
+        (uint256 ts0, uint256 c0_0, uint256 c1_0) = oracle.pairObservations(address(pair), _observationIndexOf(0));
 
         // Still within same hour window
         vm.warp(START_TIME + 1800);
         oracle.update(token0addr, token1addr);
-        (uint ts1, uint c0_1, uint c1_1) = oracle.pairObservations(
-            address(pair),
-            _observationIndexOf(1800)
-        );
+        (uint256 ts1, uint256 c0_1, uint256 c1_1) = oracle.pairObservations(address(pair), _observationIndexOf(1800));
 
         assertEq(_observationIndexOf(1800), _observationIndexOf(0));
         assertEq(ts0, ts1);

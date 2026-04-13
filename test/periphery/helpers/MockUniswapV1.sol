@@ -3,11 +3,7 @@ pragma solidity ^0.8.13;
 
 /// @dev Minimal ERC20 interface used by V1 exchange token transfers
 interface IERC20V1 {
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
 
     function transfer(address to, uint256 amount) external returns (bool);
 
@@ -47,13 +43,10 @@ contract MockUniswapV1Exchange {
         return true;
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) external returns (bool) {
-        if (allowance[from][msg.sender] != type(uint256).max)
+    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+        if (allowance[from][msg.sender] != type(uint256).max) {
             allowance[from][msg.sender] -= amount;
+        }
         balanceOf[from] -= amount;
         balanceOf[to] += amount;
         return true;
@@ -61,11 +54,11 @@ contract MockUniswapV1Exchange {
 
     // ------------------------------------------------------------------ AMM helpers
     /// @dev Uniswap V1 getInputPrice formula (same as V2 with 0.3 % fee)
-    function _getInputPrice(
-        uint256 inputAmount,
-        uint256 inputReserve,
-        uint256 outputReserve
-    ) internal pure returns (uint256) {
+    function _getInputPrice(uint256 inputAmount, uint256 inputReserve, uint256 outputReserve)
+        internal
+        pure
+        returns (uint256)
+    {
         uint256 inputAmountWithFee = inputAmount * 997;
         uint256 numerator = inputAmountWithFee * outputReserve;
         uint256 denominator = inputReserve * 1000 + inputAmountWithFee;
@@ -74,11 +67,7 @@ contract MockUniswapV1Exchange {
 
     // ------------------------------------------------------------------ Liquidity
     /// @dev addLiquidity(min_liquidity, max_tokens, deadline) payable → liquidity_minted
-    function addLiquidity(
-        uint256,
-        uint256 maxTokens,
-        uint256
-    ) external payable returns (uint256 liquidityMinted) {
+    function addLiquidity(uint256, uint256 maxTokens, uint256) external payable returns (uint256 liquidityMinted) {
         uint256 ethReserve = address(this).balance - msg.value; // balance before this deposit
         uint256 tokenReserve = IERC20V1(token).balanceOf(address(this));
 
@@ -94,31 +83,20 @@ contract MockUniswapV1Exchange {
             liquidityMinted = (msg.value * totalSupply) / ethReserve;
         }
 
-        require(
-            IERC20V1(token).transferFrom(
-                msg.sender,
-                address(this),
-                tokenAmount
-            ),
-            "MockV1: TOKEN_TRANSFER_FAILED"
-        );
+        require(IERC20V1(token).transferFrom(msg.sender, address(this), tokenAmount), "MockV1: TOKEN_TRANSFER_FAILED");
         totalSupply += liquidityMinted;
         balanceOf[msg.sender] += liquidityMinted;
     }
 
     /// @dev removeLiquidity(amount, min_eth, min_tokens, deadline) → (eth_amount, token_amount)
-    function removeLiquidity(
-        uint256 amount,
-        uint256 minEth,
-        uint256 minTokens,
-        uint256
-    ) external returns (uint256 ethAmount, uint256 tokenAmount) {
+    function removeLiquidity(uint256 amount, uint256 minEth, uint256 minTokens, uint256)
+        external
+        returns (uint256 ethAmount, uint256 tokenAmount)
+    {
         require(totalSupply > 0 && amount > 0, "MockV1: NO_LIQUIDITY");
 
         ethAmount = (address(this).balance * amount) / totalSupply;
-        tokenAmount =
-            (IERC20V1(token).balanceOf(address(this)) * amount) /
-            totalSupply;
+        tokenAmount = (IERC20V1(token).balanceOf(address(this)) * amount) / totalSupply;
 
         require(ethAmount >= minEth, "MockV1: NOT_ENOUGH_ETH");
         require(tokenAmount >= minTokens, "MockV1: NOT_ENOUGH_TOKENS");
@@ -127,46 +105,26 @@ contract MockUniswapV1Exchange {
         totalSupply -= amount;
 
         payable(msg.sender).transfer(ethAmount);
-        require(
-            IERC20V1(token).transfer(msg.sender, tokenAmount),
-            "MockV1: TOKEN_TRANSFER_FAILED"
-        );
+        require(IERC20V1(token).transfer(msg.sender, tokenAmount), "MockV1: TOKEN_TRANSFER_FAILED");
     }
 
     // ------------------------------------------------------------------ Swaps
     /// @dev tokenToEthSwapInput(tokens_sold, min_eth, deadline) → eth_bought
-    function tokenToEthSwapInput(
-        uint256 tokensSold,
-        uint256 minEth,
-        uint256
-    ) external returns (uint256 ethBought) {
+    function tokenToEthSwapInput(uint256 tokensSold, uint256 minEth, uint256) external returns (uint256 ethBought) {
         uint256 tokenReserve = IERC20V1(token).balanceOf(address(this));
-        ethBought = _getInputPrice(
-            tokensSold,
-            tokenReserve,
-            address(this).balance
-        );
+        ethBought = _getInputPrice(tokensSold, tokenReserve, address(this).balance);
         require(ethBought >= minEth, "MockV1: NOT_ENOUGH_ETH");
-        require(
-            IERC20V1(token).transferFrom(msg.sender, address(this), tokensSold),
-            "MockV1: TOKEN_TRANSFER_FAILED"
-        );
+        require(IERC20V1(token).transferFrom(msg.sender, address(this), tokensSold), "MockV1: TOKEN_TRANSFER_FAILED");
         payable(msg.sender).transfer(ethBought);
     }
 
     /// @dev ethToTokenSwapInput(min_tokens, deadline) payable → tokens_bought
-    function ethToTokenSwapInput(
-        uint256 minTokens,
-        uint256
-    ) external payable returns (uint256 tokensBought) {
+    function ethToTokenSwapInput(uint256 minTokens, uint256) external payable returns (uint256 tokensBought) {
         uint256 ethReserve = address(this).balance - msg.value; // pre-deposit ETH reserve
         uint256 tokenReserve = IERC20V1(token).balanceOf(address(this));
         tokensBought = _getInputPrice(msg.value, ethReserve, tokenReserve);
         require(tokensBought >= minTokens, "MockV1: NOT_ENOUGH_TOKENS");
-        require(
-            IERC20V1(token).transfer(msg.sender, tokensBought),
-            "MockV1: TOKEN_TRANSFER_FAILED"
-        );
+        require(IERC20V1(token).transfer(msg.sender, tokensBought), "MockV1: TOKEN_TRANSFER_FAILED");
     }
 }
 
@@ -179,13 +137,8 @@ contract MockUniswapV1Factory {
     /// @dev No-op for compatibility with code that calls initializeFactory(template)
     function initializeFactory(address) external {}
 
-    function createExchange(
-        address _token
-    ) external returns (address exchange) {
-        require(
-            _exchanges[_token] == address(0),
-            "MockV1Factory: EXCHANGE_EXISTS"
-        );
+    function createExchange(address _token) external returns (address exchange) {
+        require(_exchanges[_token] == address(0), "MockV1Factory: EXCHANGE_EXISTS");
         exchange = address(new MockUniswapV1Exchange(_token));
         _exchanges[_token] = exchange;
     }

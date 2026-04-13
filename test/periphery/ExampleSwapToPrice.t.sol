@@ -40,28 +40,15 @@ contract ExampleSwapToPriceTest is Test {
     address token1addr;
 
     function _transfer(address token, address to, uint256 amount) internal {
-        (bool ok, ) = token.call(
-            abi.encodeWithSignature("transfer(address,uint256)", to, amount)
-        );
+        (bool ok,) = token.call(abi.encodeWithSignature("transfer(address,uint256)", to, amount));
         require(ok, "transfer failed");
     }
 
     function setUp() public {
-        address tA = deployCode(
-            "src/periphery/test/ERC20.sol:ERC20",
-            abi.encode(uint256(10_000e18))
-        );
-        address tB = deployCode(
-            "src/periphery/test/ERC20.sol:ERC20",
-            abi.encode(uint256(10_000e18))
-        );
+        address tA = deployCode("src/periphery/test/ERC20.sol:ERC20", abi.encode(uint256(10_000e18)));
+        address tB = deployCode("src/periphery/test/ERC20.sol:ERC20", abi.encode(uint256(10_000e18)));
 
-        factory = IUniswapV2Factory(
-            deployCode(
-                "UniswapV2Factory.sol:UniswapV2Factory",
-                abi.encode(address(this))
-            )
-        );
+        factory = IUniswapV2Factory(deployCode("UniswapV2Factory.sol:UniswapV2Factory", abi.encode(address(this))));
         factory.createPair(tA, tB);
         pair = IUniswapV2Pair(factory.getPair(tA, tB));
 
@@ -76,18 +63,12 @@ contract ExampleSwapToPriceTest is Test {
         // Deploy WETH (needed by router) and router02
         address weth = deployCode("WETH9.sol:WETH9");
         router = IUniswapV2Router02(
-            deployCode(
-                "UniswapV2Router02.sol:UniswapV2Router02",
-                abi.encode(address(factory), weth)
-            )
+            deployCode("UniswapV2Router02.sol:UniswapV2Router02", abi.encode(address(factory), weth))
         );
 
         // Deploy ExampleSwapToPrice
         swapToPrice = ISwapToPrice(
-            deployCode(
-                "ExampleSwapToPrice.sol:ExampleSwapToPrice",
-                abi.encode(address(factory), address(router))
-            )
+            deployCode("ExampleSwapToPrice.sol:ExampleSwapToPrice", abi.encode(address(factory), address(router)))
         );
 
         // Set up price differential of 1:100 (no LP, just sync reserves)
@@ -113,57 +94,27 @@ contract ExampleSwapToPriceTest is Test {
     function test_requiresNonZeroTruePrice_bothZero() public {
         vm.expectRevert();
         swapToPrice.swapToPrice(
-            token0addr,
-            token1addr,
-            0,
-            0,
-            type(uint256).max,
-            type(uint256).max,
-            address(this),
-            type(uint256).max
+            token0addr, token1addr, 0, 0, type(uint256).max, type(uint256).max, address(this), type(uint256).max
         );
     }
 
     function test_requiresNonZeroTruePrice_aZero() public {
         vm.expectRevert();
         swapToPrice.swapToPrice(
-            token0addr,
-            token1addr,
-            0,
-            10,
-            type(uint256).max,
-            type(uint256).max,
-            address(this),
-            type(uint256).max
+            token0addr, token1addr, 0, 10, type(uint256).max, type(uint256).max, address(this), type(uint256).max
         );
     }
 
     function test_requiresNonZeroTruePrice_bZero() public {
         vm.expectRevert();
         swapToPrice.swapToPrice(
-            token0addr,
-            token1addr,
-            10,
-            0,
-            type(uint256).max,
-            type(uint256).max,
-            address(this),
-            type(uint256).max
+            token0addr, token1addr, 10, 0, type(uint256).max, type(uint256).max, address(this), type(uint256).max
         );
     }
 
     function test_requiresNonZeroMaxSpend() public {
         vm.expectRevert();
-        swapToPrice.swapToPrice(
-            token0addr,
-            token1addr,
-            1,
-            100,
-            0,
-            0,
-            address(this),
-            type(uint256).max
-        );
+        swapToPrice.swapToPrice(token0addr, token1addr, 1, 100, 0, 0, address(this), type(uint256).max);
     }
 
     // -------------------------------------------------------------------------
@@ -176,26 +127,13 @@ contract ExampleSwapToPriceTest is Test {
         uint256 token1Before = IERC20STP(token1addr).balanceOf(address(this));
 
         swapToPrice.swapToPrice(
-            token0addr,
-            token1addr,
-            1,
-            90,
-            type(uint256).max,
-            type(uint256).max,
-            address(this),
-            type(uint256).max
+            token0addr, token1addr, 1, 90, type(uint256).max, type(uint256).max, address(this), type(uint256).max
         );
 
         // token0 decreases by exactly 526682316179835569
-        assertEq(
-            token0Before - IERC20STP(token0addr).balanceOf(address(this)),
-            526_682_316_179_835_569
-        );
+        assertEq(token0Before - IERC20STP(token0addr).balanceOf(address(this)), 526_682_316_179_835_569);
         // token1 increases by exactly 49890467170695440744
-        assertEq(
-            IERC20STP(token1addr).balanceOf(address(this)) - token1Before,
-            49_890_467_170_695_440_744
-        );
+        assertEq(IERC20STP(token1addr).balanceOf(address(this)) - token1Before, 49_890_467_170_695_440_744);
     }
 
     /// @dev Moves price from 1:100 to 1:110 by selling token1 into the pair.
@@ -204,26 +142,13 @@ contract ExampleSwapToPriceTest is Test {
         uint256 token1Before = IERC20STP(token1addr).balanceOf(address(this));
 
         swapToPrice.swapToPrice(
-            token0addr,
-            token1addr,
-            1,
-            110,
-            type(uint256).max,
-            type(uint256).max,
-            address(this),
-            type(uint256).max
+            token0addr, token1addr, 1, 110, type(uint256).max, type(uint256).max, address(this), type(uint256).max
         );
 
         // token1 decreases by exactly 47376582963642643588
-        assertEq(
-            token1Before - IERC20STP(token1addr).balanceOf(address(this)),
-            47_376_582_963_642_643_588
-        );
+        assertEq(token1Before - IERC20STP(token1addr).balanceOf(address(this)), 47_376_582_963_642_643_588);
         // token0 increases by exactly 451039908682851138
-        assertEq(
-            IERC20STP(token0addr).balanceOf(address(this)) - token0Before,
-            451_039_908_682_851_138
-        );
+        assertEq(IERC20STP(token0addr).balanceOf(address(this)) - token0Before, 451_039_908_682_851_138);
     }
 
     /// @dev Reverse token argument order has the same effect as 1:110 above.
@@ -233,23 +158,10 @@ contract ExampleSwapToPriceTest is Test {
 
         // token1 / token0 = 110/1 is equivalent to token0 / token1 = 1/110
         swapToPrice.swapToPrice(
-            token1addr,
-            token0addr,
-            110,
-            1,
-            type(uint256).max,
-            type(uint256).max,
-            address(this),
-            type(uint256).max
+            token1addr, token0addr, 110, 1, type(uint256).max, type(uint256).max, address(this), type(uint256).max
         );
 
-        assertEq(
-            token1Before - IERC20STP(token1addr).balanceOf(address(this)),
-            47_376_582_963_642_643_588
-        );
-        assertEq(
-            IERC20STP(token0addr).balanceOf(address(this)) - token0Before,
-            451_039_908_682_851_138
-        );
+        assertEq(token1Before - IERC20STP(token1addr).balanceOf(address(this)), 47_376_582_963_642_643_588);
+        assertEq(IERC20STP(token0addr).balanceOf(address(this)) - token0Before, 451_039_908_682_851_138);
     }
 }

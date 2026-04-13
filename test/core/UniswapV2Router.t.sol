@@ -19,7 +19,7 @@ interface IERC20Minimal {
     function DOMAIN_SEPARATOR() external view returns (bytes32);
     function PERMIT_TYPEHASH() external pure returns (bytes32);
     function nonces(address) external view returns (uint256);
-    function permit(address,address,uint256,uint256,uint8,bytes32,bytes32) external;
+    function permit(address, address, uint256, uint256, uint8, bytes32, bytes32) external;
 }
 
 interface IWETH {
@@ -35,13 +35,13 @@ interface IWETH {
 contract UniswapV2RouterTest is Test {
     uint256 constant MINIMUM_LIQUIDITY = 1_000;
 
-    IUniswapV2Factory  factory;
+    IUniswapV2Factory factory;
     IUniswapV2Router02 router01;
     IUniswapV2Router02 router02;
 
     IERC20Minimal token0;
     IERC20Minimal token1;
-    IWETH         weth;
+    IWETH weth;
     IERC20Minimal wethPartner;
 
     IUniswapV2Pair pair;
@@ -60,29 +60,24 @@ contract UniswapV2RouterTest is Test {
         vm.deal(wallet, 100 ether);
 
         // Tokens
-        address tokenA        = deployCode("src/periphery/test/ERC20.sol:ERC20",  abi.encode(uint256(10_000e18)));
-        address tokenB        = deployCode("src/periphery/test/ERC20.sol:ERC20",  abi.encode(uint256(10_000e18)));
-        address wethAddr      = deployCode("WETH9.sol:WETH9");
+        address tokenA = deployCode("src/periphery/test/ERC20.sol:ERC20", abi.encode(uint256(10_000e18)));
+        address tokenB = deployCode("src/periphery/test/ERC20.sol:ERC20", abi.encode(uint256(10_000e18)));
+        address wethAddr = deployCode("WETH9.sol:WETH9");
         address wethPartnerAddr = deployCode("src/periphery/test/ERC20.sol:ERC20", abi.encode(uint256(10_000e18)));
 
-        weth        = IWETH(wethAddr);
+        weth = IWETH(wethAddr);
         wethPartner = IERC20Minimal(wethPartnerAddr);
 
         // Factory & routers
-        address factoryAddr = deployCode(
-            "UniswapV2Factory.sol:UniswapV2Factory",
-            abi.encode(address(this))
-        );
+        address factoryAddr = deployCode("UniswapV2Factory.sol:UniswapV2Factory", abi.encode(address(this)));
         factory = IUniswapV2Factory(factoryAddr);
 
-        router01 = IUniswapV2Router02(deployCode(
-            "UniswapV2Router01.sol:UniswapV2Router01",
-            abi.encode(factoryAddr, wethAddr)
-        ));
-        router02 = IUniswapV2Router02(deployCode(
-            "UniswapV2Router02.sol:UniswapV2Router02",
-            abi.encode(factoryAddr, wethAddr)
-        ));
+        router01 = IUniswapV2Router02(
+            deployCode("UniswapV2Router01.sol:UniswapV2Router01", abi.encode(factoryAddr, wethAddr))
+        );
+        router02 = IUniswapV2Router02(
+            deployCode("UniswapV2Router02.sol:UniswapV2Router02", abi.encode(factoryAddr, wethAddr))
+        );
 
         // Create token0/token1 pair
         factory.createPair(tokenA, tokenB);
@@ -118,12 +113,12 @@ contract UniswapV2RouterTest is Test {
     // -------------------------------------------------------------------------
     function test_factoryAndWETH_router01() public view {
         assertEq(router01.factory(), address(factory));
-        assertEq(router01.WETH(),    address(weth));
+        assertEq(router01.WETH(), address(weth));
     }
 
     function test_factoryAndWETH_router02() public view {
         assertEq(router02.factory(), address(factory));
-        assertEq(router02.WETH(),    address(weth));
+        assertEq(router02.WETH(), address(weth));
     }
 
     // -------------------------------------------------------------------------
@@ -172,11 +167,7 @@ contract UniswapV2RouterTest is Test {
     function test_getAmountsOut() public {
         token0.approve(address(router02), type(uint256).max);
         token1.approve(address(router02), type(uint256).max);
-        router02.addLiquidity(
-            address(token0), address(token1),
-            10_000, 10_000, 0, 0,
-            address(this), type(uint256).max
-        );
+        router02.addLiquidity(address(token0), address(token1), 10_000, 10_000, 0, 0, address(this), type(uint256).max);
 
         address[] memory path = new address[](1);
         path[0] = address(token0);
@@ -194,11 +185,7 @@ contract UniswapV2RouterTest is Test {
     function test_getAmountsIn() public {
         token0.approve(address(router02), type(uint256).max);
         token1.approve(address(router02), type(uint256).max);
-        router02.addLiquidity(
-            address(token0), address(token1),
-            10_000, 10_000, 0, 0,
-            address(this), type(uint256).max
-        );
+        router02.addLiquidity(address(token0), address(token1), 10_000, 10_000, 0, 0, address(this), type(uint256).max);
 
         address[] memory path = new address[](1);
         path[0] = address(token0);
@@ -233,25 +220,26 @@ contract UniswapV2RouterTest is Test {
         vm.expectEmit(true, false, false, true, address(pair));
         emit IUniswapV2Pair.Mint(address(router), amount0, amount1);
 
-        router.addLiquidity(
-            address(token0), address(token1),
-            amount0, amount1, 0, 0,
-            address(this), type(uint256).max
-        );
+        router.addLiquidity(address(token0), address(token1), amount0, amount1, 0, 0, address(this), type(uint256).max);
 
         assertEq(pair.balanceOf(address(this)), expectedLiq - MINIMUM_LIQUIDITY);
     }
 
-    function test_addLiquidity_router01() public { _testAddLiquidity(router01); }
-    function test_addLiquidity_router02() public { _testAddLiquidity(router02); }
+    function test_addLiquidity_router01() public {
+        _testAddLiquidity(router01);
+    }
+
+    function test_addLiquidity_router02() public {
+        _testAddLiquidity(router02);
+    }
 
     // -------------------------------------------------------------------------
     // addLiquidityETH (common to Router01 & Router02)
     // -------------------------------------------------------------------------
     function _testAddLiquidityETH(IUniswapV2Router02 router) internal {
         uint256 partnerAmount = 1e18;
-        uint256 ethAmount     = 4e18;
-        uint256 expectedLiq   = 2e18;
+        uint256 ethAmount = 4e18;
+        uint256 expectedLiq = 2e18;
 
         address wethPairToken0 = wethPair.token0();
         wethPartner.approve(address(router), type(uint256).max);
@@ -262,17 +250,20 @@ contract UniswapV2RouterTest is Test {
         emit IUniswapV2Pair.Transfer(address(0), address(this), expectedLiq - MINIMUM_LIQUIDITY);
 
         router.addLiquidityETH{value: ethAmount}(
-            address(wethPartner),
-            partnerAmount, partnerAmount, ethAmount,
-            address(this), type(uint256).max
+            address(wethPartner), partnerAmount, partnerAmount, ethAmount, address(this), type(uint256).max
         );
 
         assertEq(wethPair.balanceOf(address(this)), expectedLiq - MINIMUM_LIQUIDITY);
         (wethPairToken0) = (wethPairToken0); // silence unused warning
     }
 
-    function test_addLiquidityETH_router01() public { _testAddLiquidityETH(router01); }
-    function test_addLiquidityETH_router02() public { _testAddLiquidityETH(router02); }
+    function test_addLiquidityETH_router01() public {
+        _testAddLiquidityETH(router01);
+    }
+
+    function test_addLiquidityETH_router02() public {
+        _testAddLiquidityETH(router02);
+    }
 
     // -------------------------------------------------------------------------
     // removeLiquidity (common to Router01 & Router02)
@@ -286,10 +277,7 @@ contract UniswapV2RouterTest is Test {
         pair.approve(address(router), type(uint256).max);
 
         router.removeLiquidity(
-            address(token0), address(token1),
-            expectedLiq - MINIMUM_LIQUIDITY,
-            0, 0,
-            address(this), type(uint256).max
+            address(token0), address(token1), expectedLiq - MINIMUM_LIQUIDITY, 0, 0, address(this), type(uint256).max
         );
 
         assertEq(pair.balanceOf(address(this)), 0);
@@ -300,16 +288,21 @@ contract UniswapV2RouterTest is Test {
         assertEq(token1.balanceOf(address(this)), total1 - 2000);
     }
 
-    function test_removeLiquidity_router01() public { _testRemoveLiquidity(router01); }
-    function test_removeLiquidity_router02() public { _testRemoveLiquidity(router02); }
+    function test_removeLiquidity_router01() public {
+        _testRemoveLiquidity(router01);
+    }
+
+    function test_removeLiquidity_router02() public {
+        _testRemoveLiquidity(router02);
+    }
 
     // -------------------------------------------------------------------------
     // removeLiquidityETH (common to Router01 & Router02)
     // -------------------------------------------------------------------------
     function _testRemoveLiquidityETH(IUniswapV2Router02 router) internal {
         uint256 partnerAmount = 1e18;
-        uint256 ethAmount     = 4e18;
-        uint256 expectedLiq   = 2e18;
+        uint256 ethAmount = 4e18;
+        uint256 expectedLiq = 2e18;
 
         // Direct deposit to pair
         wethPartner.transfer(address(wethPair), partnerAmount);
@@ -319,17 +312,19 @@ contract UniswapV2RouterTest is Test {
 
         wethPair.approve(address(router), type(uint256).max);
         router.removeLiquidityETH(
-            address(wethPartner),
-            expectedLiq - MINIMUM_LIQUIDITY,
-            0, 0,
-            address(this), type(uint256).max
+            address(wethPartner), expectedLiq - MINIMUM_LIQUIDITY, 0, 0, address(this), type(uint256).max
         );
 
         assertEq(wethPair.balanceOf(address(this)), 0);
     }
 
-    function test_removeLiquidityETH_router01() public { _testRemoveLiquidityETH(router01); }
-    function test_removeLiquidityETH_router02() public { _testRemoveLiquidityETH(router02); }
+    function test_removeLiquidityETH_router01() public {
+        _testRemoveLiquidityETH(router01);
+    }
+
+    function test_removeLiquidityETH_router02() public {
+        _testRemoveLiquidityETH(router02);
+    }
 
     // -------------------------------------------------------------------------
     // removeLiquidityWithPermit (Router01 & Router02)
@@ -340,38 +335,35 @@ contract UniswapV2RouterTest is Test {
         // Add liquidity; wallet receives LP tokens via direct transfer + mint
         token0.transfer(address(pair), amount0);
         token1.transfer(address(pair), amount1);
-        pair.mint(wallet);                         // LP goes to wallet
+        pair.mint(wallet); // LP goes to wallet
 
-        uint256 liq      = pair.balanceOf(wallet);
+        uint256 liq = pair.balanceOf(wallet);
         uint256 deadline = type(uint256).max;
 
-        bytes32 digest = keccak256(abi.encodePacked(
-            "\x19\x01",
-            pair.DOMAIN_SEPARATOR(),
-            keccak256(abi.encode(
-                pair.PERMIT_TYPEHASH(),
-                wallet,
-                address(router),
-                liq,
-                pair.nonces(wallet),
-                deadline
-            ))
-        ));
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                pair.DOMAIN_SEPARATOR(),
+                keccak256(
+                    abi.encode(pair.PERMIT_TYPEHASH(), wallet, address(router), liq, pair.nonces(wallet), deadline)
+                )
+            )
+        );
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(walletKey, digest);
 
         vm.prank(wallet);
-        router.removeLiquidityWithPermit(
-            address(token0), address(token1),
-            liq, 0, 0,
-            wallet, deadline,
-            false, v, r, s
-        );
+        router.removeLiquidityWithPermit(address(token0), address(token1), liq, 0, 0, wallet, deadline, false, v, r, s);
 
         assertEq(pair.balanceOf(wallet), 0);
     }
 
-    function test_removeLiquidityWithPermit_router01() public { _testRemoveLiquidityWithPermit(router01); }
-    function test_removeLiquidityWithPermit_router02() public { _testRemoveLiquidityWithPermit(router02); }
+    function test_removeLiquidityWithPermit_router01() public {
+        _testRemoveLiquidityWithPermit(router01);
+    }
+
+    function test_removeLiquidityWithPermit_router02() public {
+        _testRemoveLiquidityWithPermit(router02);
+    }
 
     // -------------------------------------------------------------------------
     // swapExactTokensForTokens (common to Router01 & Router02)
@@ -387,7 +379,7 @@ contract UniswapV2RouterTest is Test {
         path[0] = address(token0);
         path[1] = address(token1);
 
-        uint256 swapAmountIn     = 1e18;
+        uint256 swapAmountIn = 1e18;
         uint256 expectedAmountOut = 1_662_497_915_624_478_906;
 
         uint256 balBefore = token1.balanceOf(address(this));
@@ -397,8 +389,13 @@ contract UniswapV2RouterTest is Test {
         assertEq(received, expectedAmountOut);
     }
 
-    function test_swapExactTokensForTokens_router01() public { _testSwapExactTokensForTokens(router01); }
-    function test_swapExactTokensForTokens_router02() public { _testSwapExactTokensForTokens(router02); }
+    function test_swapExactTokensForTokens_router01() public {
+        _testSwapExactTokensForTokens(router01);
+    }
+
+    function test_swapExactTokensForTokens_router02() public {
+        _testSwapExactTokensForTokens(router02);
+    }
 
     // -------------------------------------------------------------------------
     // swapTokensForExactTokens (common to Router01 & Router02)
@@ -414,7 +411,7 @@ contract UniswapV2RouterTest is Test {
         path[0] = address(token0);
         path[1] = address(token1);
 
-        uint256 exactOut   = 1e18;
+        uint256 exactOut = 1e18;
         // Note: UniswapV2Router01 has a known bug — its getAmountIn() calls getAmountOut()
         // internally. Use router02's correct implementation as the reference for both tests.
         uint256 expectedIn = router02.getAmountIn(exactOut, amount0, amount1);
@@ -427,15 +424,20 @@ contract UniswapV2RouterTest is Test {
         assertEq(token1.balanceOf(address(this)), token1.totalSupply() - amount1 + exactOut);
     }
 
-    function test_swapTokensForExactTokens_router01() public { _testSwapTokensForExactTokens(router01); }
-    function test_swapTokensForExactTokens_router02() public { _testSwapTokensForExactTokens(router02); }
+    function test_swapTokensForExactTokens_router01() public {
+        _testSwapTokensForExactTokens(router01);
+    }
+
+    function test_swapTokensForExactTokens_router02() public {
+        _testSwapTokensForExactTokens(router02);
+    }
 
     // -------------------------------------------------------------------------
     // swapExactETHForTokens (common to Router01 & Router02)
     // -------------------------------------------------------------------------
     function _testSwapExactETHForTokens(IUniswapV2Router02 router) internal {
         uint256 wethPartnerAmount = 10e18;
-        uint256 ethAmount         = 5e18;
+        uint256 ethAmount = 5e18;
 
         // Seed WETH pair directly
         wethPartner.transfer(address(wethPair), wethPartnerAmount);
@@ -447,7 +449,7 @@ contract UniswapV2RouterTest is Test {
         path[0] = address(weth);
         path[1] = address(wethPartner);
 
-        uint256 swapEth  = 1e18;
+        uint256 swapEth = 1e18;
         uint256 balBefore = wethPartner.balanceOf(address(this));
         router.swapExactETHForTokens{value: swapEth}(0, path, address(this), type(uint256).max);
         uint256 received = wethPartner.balanceOf(address(this)) - balBefore;
@@ -455,15 +457,20 @@ contract UniswapV2RouterTest is Test {
         assertGt(received, 0);
     }
 
-    function test_swapExactETHForTokens_router01() public { _testSwapExactETHForTokens(router01); }
-    function test_swapExactETHForTokens_router02() public { _testSwapExactETHForTokens(router02); }
+    function test_swapExactETHForTokens_router01() public {
+        _testSwapExactETHForTokens(router01);
+    }
+
+    function test_swapExactETHForTokens_router02() public {
+        _testSwapExactETHForTokens(router02);
+    }
 
     // -------------------------------------------------------------------------
     // swapExactTokensForETH (common to Router01 & Router02)
     // -------------------------------------------------------------------------
     function _testSwapExactTokensForETH(IUniswapV2Router02 router) internal {
         uint256 wethPartnerAmount = 5e18;
-        uint256 ethAmount         = 10e18;
+        uint256 ethAmount = 10e18;
 
         wethPartner.transfer(address(wethPair), wethPartnerAmount);
         weth.deposit{value: ethAmount}();
@@ -476,7 +483,7 @@ contract UniswapV2RouterTest is Test {
         path[0] = address(wethPartner);
         path[1] = address(weth);
 
-        uint256 swapIn   = 1e18;
+        uint256 swapIn = 1e18;
         uint256 balBefore = address(this).balance;
         router.swapExactTokensForETH(swapIn, 0, path, address(this), type(uint256).max);
         uint256 ethReceived = address(this).balance - balBefore;
@@ -484,8 +491,13 @@ contract UniswapV2RouterTest is Test {
         assertGt(ethReceived, 0);
     }
 
-    function test_swapExactTokensForETH_router01() public { _testSwapExactTokensForETH(router01); }
-    function test_swapExactTokensForETH_router02() public { _testSwapExactTokensForETH(router02); }
+    function test_swapExactTokensForETH_router01() public {
+        _testSwapExactTokensForETH(router01);
+    }
+
+    function test_swapExactTokensForETH_router02() public {
+        _testSwapExactTokensForETH(router02);
+    }
 
     // =========================================================================
     // fee-on-transfer token tests (Router02 only)
@@ -494,7 +506,9 @@ contract UniswapV2RouterTest is Test {
     IUniswapV2Pair dttPair;
 
     function _setupFOT() internal {
-        dtt = IERC20Minimal(deployCode("src/periphery/test/DeflatingERC20.sol:DeflatingERC20", abi.encode(uint256(10_000e18))));
+        dtt = IERC20Minimal(
+            deployCode("src/periphery/test/DeflatingERC20.sol:DeflatingERC20", abi.encode(uint256(10_000e18)))
+        );
         factory.createPair(address(dtt), address(weth));
         dttPair = IUniswapV2Pair(factory.getPair(address(dtt), address(weth)));
     }
@@ -502,9 +516,7 @@ contract UniswapV2RouterTest is Test {
     function _addDTTLiquidity(uint256 dttAmount, uint256 ethAmount) internal {
         dtt.approve(address(router02), type(uint256).max);
         router02.addLiquidityETH{value: ethAmount}(
-            address(dtt),
-            dttAmount, dttAmount, ethAmount,
-            address(this), type(uint256).max
+            address(dtt), dttAmount, dttAmount, ethAmount, address(this), type(uint256).max
         );
     }
 
@@ -514,20 +526,17 @@ contract UniswapV2RouterTest is Test {
         uint256 ethAmount = 4e18;
         _addDTTLiquidity(dttAmount, ethAmount);
 
-        uint256 dttInPair   = dtt.balanceOf(address(dttPair));
-        uint256 wethInPair  = weth.balanceOf(address(dttPair));
-        uint256 liq         = dttPair.balanceOf(address(this));
+        uint256 dttInPair = dtt.balanceOf(address(dttPair));
+        uint256 wethInPair = weth.balanceOf(address(dttPair));
+        uint256 liq = dttPair.balanceOf(address(this));
         uint256 totalSupply = dttPair.totalSupply();
 
-        uint256 naiveDTTExpected  = dttInPair  * liq / totalSupply;
-        uint256 wethExpected      = wethInPair * liq / totalSupply;
+        uint256 naiveDTTExpected = dttInPair * liq / totalSupply;
+        uint256 wethExpected = wethInPair * liq / totalSupply;
 
         dttPair.approve(address(router02), type(uint256).max);
         router02.removeLiquidityETHSupportingFeeOnTransferTokens(
-            address(dtt),
-            liq,
-            naiveDTTExpected, wethExpected,
-            address(this), type(uint256).max
+            address(dtt), liq, naiveDTTExpected, wethExpected, address(this), type(uint256).max
         );
 
         // Router must hold no ETH after the operation
@@ -597,9 +606,7 @@ contract UniswapV2RouterTest is Test {
         path[1] = address(weth);
 
         uint256 balBefore = address(this).balance;
-        router02.swapExactTokensForETHSupportingFeeOnTransferTokens(
-            1e18, 0, path, address(this), type(uint256).max
-        );
+        router02.swapExactTokensForETHSupportingFeeOnTransferTokens(1e18, 0, path, address(this), type(uint256).max);
         assertGt(address(this).balance - balBefore, 0);
     }
 

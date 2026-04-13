@@ -8,4 +8,6 @@ remappings = [
     "@uniswap/v2-periphery/=src/periphery/",
 ]
 
+[fmt]
+ignore = ["src/core/**/*.sol", "src/periphery/**/*.sol", "lib/**/*.sol"]
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

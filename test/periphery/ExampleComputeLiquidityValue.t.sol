@@ -8,21 +8,26 @@ import "@uniswap/v2-periphery/interfaces/IUniswapV2Router02.sol";
 
 interface IComputeLiquidityValue {
     function factory() external view returns (address);
-    function getLiquidityValue(
-        address tokenA, address tokenB, uint256 liquidityAmount
-    ) external view returns (uint256 tokenAAmount, uint256 tokenBAmount);
-    function getReservesAfterArbitrage(
-        address tokenA, address tokenB,
-        uint256 truePriceTokenA, uint256 truePriceTokenB
-    ) external view returns (uint256 reserveA, uint256 reserveB);
+    function getLiquidityValue(address tokenA, address tokenB, uint256 liquidityAmount)
+        external
+        view
+        returns (uint256 tokenAAmount, uint256 tokenBAmount);
+    function getReservesAfterArbitrage(address tokenA, address tokenB, uint256 truePriceTokenA, uint256 truePriceTokenB)
+        external
+        view
+        returns (uint256 reserveA, uint256 reserveB);
     function getLiquidityValueAfterArbitrageToPrice(
-        address tokenA, address tokenB,
-        uint256 truePriceTokenA, uint256 truePriceTokenB,
+        address tokenA,
+        address tokenB,
+        uint256 truePriceTokenA,
+        uint256 truePriceTokenB,
         uint256 liquidityAmount
     ) external view returns (uint256 tokenAAmount, uint256 tokenBAmount);
     function getGasCostOfGetLiquidityValueAfterArbitrageToPrice(
-        address tokenA, address tokenB,
-        uint256 truePriceTokenA, uint256 truePriceTokenB,
+        address tokenA,
+        address tokenB,
+        uint256 truePriceTokenA,
+        uint256 truePriceTokenB,
         uint256 liquidityAmount
     ) external view returns (uint256 gasCost);
 }
@@ -35,10 +40,10 @@ interface IERC20CLV {
 
 /// @dev Forge port of v2-periphery/test/ExampleComputeLiquidityValue.spec.ts
 contract ExampleComputeLiquidityValueTest is Test {
-    IUniswapV2Factory      factory;
-    IUniswapV2Pair         pair;
+    IUniswapV2Factory factory;
+    IUniswapV2Pair pair;
     IComputeLiquidityValue computeLiquidity;
-    IUniswapV2Router02     router;
+    IUniswapV2Router02 router;
 
     address token0addr;
     address token1addr;
@@ -58,30 +63,28 @@ contract ExampleComputeLiquidityValueTest is Test {
         address tA = deployCode("src/periphery/test/ERC20.sol:ERC20", abi.encode(uint256(100_000e18)));
         address tB = deployCode("src/periphery/test/ERC20.sol:ERC20", abi.encode(uint256(100_000e18)));
 
-        factory = IUniswapV2Factory(
-            deployCode("UniswapV2Factory.sol:UniswapV2Factory", abi.encode(address(this)))
-        );
+        factory = IUniswapV2Factory(deployCode("UniswapV2Factory.sol:UniswapV2Factory", abi.encode(address(this))));
         factory.createPair(tA, tB);
         pair = IUniswapV2Pair(factory.getPair(tA, tB));
 
-        if (pair.token0() == tA) { token0addr = tA; token1addr = tB; }
-        else                     { token0addr = tB; token1addr = tA; }
+        if (pair.token0() == tA) token0addr = tA;
+        token1addr = tB;
+        else token0addr = tB;
+        token1addr = tA;
 
         address weth = deployCode("WETH9.sol:WETH9");
 
-        router = IUniswapV2Router02(deployCode(
-            "UniswapV2Router02.sol:UniswapV2Router02",
-            abi.encode(address(factory), weth)
-        ));
+        router = IUniswapV2Router02(
+            deployCode("UniswapV2Router02.sol:UniswapV2Router02", abi.encode(address(factory), weth))
+        );
 
         // Seed: 10 token0 + 1000 token1 → 100e18 LP
         _addLiquidity(10e18, 1000e18, address(this));
         assertEq(pair.totalSupply(), 100e18);
 
-        computeLiquidity = IComputeLiquidityValue(deployCode(
-            "ExampleComputeLiquidityValue.sol:ExampleComputeLiquidityValue",
-            abi.encode(address(factory))
-        ));
+        computeLiquidity = IComputeLiquidityValue(
+            deployCode("ExampleComputeLiquidityValue.sol:ExampleComputeLiquidityValue", abi.encode(address(factory)))
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -109,7 +112,8 @@ contract ExampleComputeLiquidityValueTest is Test {
     function test_getLiquidityValue_afterSwap() public {
         IERC20CLV(token0addr).approve(address(router), type(uint256).max);
         address[] memory path = new address[](2);
-        path[0] = token0addr; path[1] = token1addr;
+        path[0] = token0addr;
+        path[1] = token1addr;
         router.swapExactTokensForTokens(10e18, 0, path, address(this), type(uint256).max);
 
         (uint256 v0, uint256 v1) = computeLiquidity.getLiquidityValue(token0addr, token1addr, 7e18);
@@ -124,7 +128,8 @@ contract ExampleComputeLiquidityValueTest is Test {
 
         IERC20CLV(token0addr).approve(address(router), type(uint256).max);
         address[] memory path = new address[](2);
-        path[0] = token0addr; path[1] = token1addr;
+        path[0] = token0addr;
+        path[1] = token1addr;
         router.swapExactTokensForTokens(20e18, 0, path, address(this), type(uint256).max);
 
         (uint256 v0, uint256 v1) = computeLiquidity.getLiquidityValue(token0addr, token1addr, 7e18);
@@ -173,8 +178,7 @@ contract ExampleComputeLiquidityValueTest is Test {
 
     function test_getReservesAfterArbitrage_largeNumbers() public view {
         (uint256 r0, uint256 r1) = computeLiquidity.getReservesAfterArbitrage(
-            token0addr, token1addr,
-            type(uint256).max / 1000, type(uint256).max / 1000
+            token0addr, token1addr, type(uint256).max / 1000, type(uint256).max / 1000
         );
         assertEq(r0, 100_120_248_075_158_403_008);
         assertEq(r1, 100_150_338_345_970_840_319);
@@ -184,25 +188,22 @@ contract ExampleComputeLiquidityValueTest is Test {
     // #getLiquidityValueAfterArbitrageToPrice — fee off
     // -------------------------------------------------------------------------
     function test_getLiquidityValueAfterArbitrage_feeOff_1to105() public view {
-        (uint256 v0, uint256 v1) = computeLiquidity.getLiquidityValueAfterArbitrageToPrice(
-            token0addr, token1addr, 1, 105, 5e18
-        );
+        (uint256 v0, uint256 v1) =
+            computeLiquidity.getLiquidityValueAfterArbitrageToPrice(token0addr, token1addr, 1, 105, 5e18);
         assertEq(v0, 488_683_612_488_266_114);
         assertEq(v1, 51_161_327_957_205_755_422);
     }
 
     function test_getLiquidityValueAfterArbitrage_feeOff_1to95() public view {
-        (uint256 v0, uint256 v1) = computeLiquidity.getLiquidityValueAfterArbitrageToPrice(
-            token0addr, token1addr, 1, 95, 5e18
-        );
+        (uint256 v0, uint256 v1) =
+            computeLiquidity.getLiquidityValueAfterArbitrageToPrice(token0addr, token1addr, 1, 95, 5e18);
         assertEq(v0, 512_255_881_944_227_034);
         assertEq(v1, 48_807_237_571_060_645_526);
     }
 
     function test_getLiquidityValueAfterArbitrage_feeOff_1to100() public view {
-        (uint256 v0, uint256 v1) = computeLiquidity.getLiquidityValueAfterArbitrageToPrice(
-            token0addr, token1addr, 1, 100, 5e18
-        );
+        (uint256 v0, uint256 v1) =
+            computeLiquidity.getLiquidityValueAfterArbitrageToPrice(token0addr, token1addr, 1, 100, 5e18);
         assertEq(v0, 500_000_000_000_000_000);
         assertEq(v1, 50_000_000_000_000_000_000);
     }
@@ -210,16 +211,16 @@ contract ExampleComputeLiquidityValueTest is Test {
     function test_getLiquidityValueAfterArbitrage_feeOff_afterSwap_1to25() public {
         IERC20CLV(token0addr).approve(address(router), type(uint256).max);
         address[] memory path = new address[](2);
-        path[0] = token0addr; path[1] = token1addr;
+        path[0] = token0addr;
+        path[1] = token1addr;
         router.swapExactTokensForTokens(10e18, 0, path, address(this), type(uint256).max);
 
         (uint112 r0, uint112 r1,) = pair.getReserves();
         assertEq(r0, 20_000_000_000_000_000_000);
         assertEq(r1, 500_751_126_690_035_052_579);
 
-        (uint256 v0, uint256 v1) = computeLiquidity.getLiquidityValueAfterArbitrageToPrice(
-            token0addr, token1addr, 1, 25, 5e18
-        );
+        (uint256 v0, uint256 v1) =
+            computeLiquidity.getLiquidityValueAfterArbitrageToPrice(token0addr, token1addr, 1, 25, 5e18);
         assertEq(v0, 1_000_000_000_000_000_000);
         assertEq(v1, 25_037_556_334_501_752_628);
     }
@@ -227,12 +228,12 @@ contract ExampleComputeLiquidityValueTest is Test {
     function test_getLiquidityValueAfterArbitrage_feeOff_afterSwap_arbBackTo1to100() public {
         IERC20CLV(token0addr).approve(address(router), type(uint256).max);
         address[] memory path = new address[](2);
-        path[0] = token0addr; path[1] = token1addr;
+        path[0] = token0addr;
+        path[1] = token1addr;
         router.swapExactTokensForTokens(10e18, 0, path, address(this), type(uint256).max);
 
-        (uint256 v0, uint256 v1) = computeLiquidity.getLiquidityValueAfterArbitrageToPrice(
-            token0addr, token1addr, 1, 100, 5e18
-        );
+        (uint256 v0, uint256 v1) =
+            computeLiquidity.getLiquidityValueAfterArbitrageToPrice(token0addr, token1addr, 1, 100, 5e18);
         assertEq(v0, 501_127_678_536_722_155);
         assertEq(v1, 50_037_429_168_613_534_246);
     }
@@ -245,9 +246,8 @@ contract ExampleComputeLiquidityValueTest is Test {
         _addLiquidity(10e18, 1000e18, address(0));
         assertEq(pair.totalSupply(), 200e18);
 
-        (uint256 v0, uint256 v1) = computeLiquidity.getLiquidityValueAfterArbitrageToPrice(
-            token0addr, token1addr, 1, 105, 5e18
-        );
+        (uint256 v0, uint256 v1) =
+            computeLiquidity.getLiquidityValueAfterArbitrageToPrice(token0addr, token1addr, 1, 105, 5e18);
         assertEq(v0, 488_680_839_243_189_328);
         assertEq(v1, 51_161_037_620_273_529_068);
     }
@@ -256,9 +256,8 @@ contract ExampleComputeLiquidityValueTest is Test {
         factory.setFeeTo(address(this));
         _addLiquidity(10e18, 1000e18, address(0));
 
-        (uint256 v0, uint256 v1) = computeLiquidity.getLiquidityValueAfterArbitrageToPrice(
-            token0addr, token1addr, 1, 95, 5e18
-        );
+        (uint256 v0, uint256 v1) =
+            computeLiquidity.getLiquidityValueAfterArbitrageToPrice(token0addr, token1addr, 1, 95, 5e18);
         assertEq(v0, 512_252_817_918_759_166);
         assertEq(v1, 48_806_945_633_721_895_174);
     }
@@ -267,9 +266,8 @@ contract ExampleComputeLiquidityValueTest is Test {
         factory.setFeeTo(address(this));
         _addLiquidity(10e18, 1000e18, address(0));
 
-        (uint256 v0, uint256 v1) = computeLiquidity.getLiquidityValueAfterArbitrageToPrice(
-            token0addr, token1addr, 1, 100, 5e18
-        );
+        (uint256 v0, uint256 v1) =
+            computeLiquidity.getLiquidityValueAfterArbitrageToPrice(token0addr, token1addr, 1, 100, 5e18);
         assertEq(v0, 500_000_000_000_000_000);
         assertEq(v1, 50_000_000_000_000_000_000);
     }
@@ -280,16 +278,16 @@ contract ExampleComputeLiquidityValueTest is Test {
 
         IERC20CLV(token0addr).approve(address(router), type(uint256).max);
         address[] memory path = new address[](2);
-        path[0] = token0addr; path[1] = token1addr;
+        path[0] = token0addr;
+        path[1] = token1addr;
         router.swapExactTokensForTokens(20e18, 0, path, address(this), type(uint256).max);
 
         (uint112 r0, uint112 r1,) = pair.getReserves();
         assertEq(r0, 40_000_000_000_000_000_000);
         assertEq(r1, 1_001_502_253_380_070_105_158);
 
-        (uint256 v0, uint256 v1) = computeLiquidity.getLiquidityValueAfterArbitrageToPrice(
-            token0addr, token1addr, 1, 25, 5e18
-        );
+        (uint256 v0, uint256 v1) =
+            computeLiquidity.getLiquidityValueAfterArbitrageToPrice(token0addr, token1addr, 1, 25, 5e18);
         assertEq(v0, 999_874_953_089_810_756);
         assertEq(v1, 25_034_425_465_443_434_060);
     }
@@ -300,12 +298,12 @@ contract ExampleComputeLiquidityValueTest is Test {
 
         IERC20CLV(token0addr).approve(address(router), type(uint256).max);
         address[] memory path = new address[](2);
-        path[0] = token0addr; path[1] = token1addr;
+        path[0] = token0addr;
+        path[1] = token1addr;
         router.swapExactTokensForTokens(20e18, 0, path, address(this), type(uint256).max);
 
-        (uint256 v0, uint256 v1) = computeLiquidity.getLiquidityValueAfterArbitrageToPrice(
-            token0addr, token1addr, 1, 100, 5e18
-        );
+        (uint256 v0, uint256 v1) =
+            computeLiquidity.getLiquidityValueAfterArbitrageToPrice(token0addr, token1addr, 1, 100, 5e18);
         assertEq(v0, 501_002_443_792_372_662);
         assertEq(v1, 50_024_924_521_757_597_314);
     }
@@ -314,14 +312,16 @@ contract ExampleComputeLiquidityValueTest is Test {
     // gas cost sanity checks
     // -------------------------------------------------------------------------
     function test_gasCost_positive_feeOff() public view {
-        assertGt(computeLiquidity.getGasCostOfGetLiquidityValueAfterArbitrageToPrice(
-            token0addr, token1addr, 1, 100, 5e18), 0);
+        assertGt(
+            computeLiquidity.getGasCostOfGetLiquidityValueAfterArbitrageToPrice(token0addr, token1addr, 1, 100, 5e18), 0
+        );
     }
 
     function test_gasCost_positive_feeOn() public {
         factory.setFeeTo(address(this));
         _addLiquidity(10e18, 1000e18, address(0));
-        assertGt(computeLiquidity.getGasCostOfGetLiquidityValueAfterArbitrageToPrice(
-            token0addr, token1addr, 1, 100, 5e18), 0);
+        assertGt(
+            computeLiquidity.getGasCostOfGetLiquidityValueAfterArbitrageToPrice(token0addr, token1addr, 1, 100, 5e18), 0
+        );
     }
 }

@@ -8,10 +8,7 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 interface IExampleOracleSimple {
     function update() external;
 
-    function consult(
-        address token,
-        uint amountIn
-    ) external view returns (uint amountOut);
+    function consult(address token, uint256 amountIn) external view returns (uint256 amountOut);
 
     function price0Average() external view returns (uint224);
 
@@ -31,31 +28,17 @@ contract ExampleOracleSimpleTest is Test {
     uint256 constant TOKEN1_AMOUNT = 10e18;
 
     // FixedPoint UQ112x112 encode: (y << 112) / x
-    function _encodePrice(
-        uint256 r0,
-        uint256 r1
-    ) internal pure returns (uint256 price0, uint256 price1) {
+    function _encodePrice(uint256 r0, uint256 r1) internal pure returns (uint256 price0, uint256 price1) {
         price0 = (r1 << 112) / r0;
         price1 = (r0 << 112) / r1;
     }
 
     function setUp() public {
         // Deploy two ERC20s
-        address tA = deployCode(
-            "src/periphery/test/ERC20.sol:ERC20",
-            abi.encode(uint256(10_000e18))
-        );
-        address tB = deployCode(
-            "src/periphery/test/ERC20.sol:ERC20",
-            abi.encode(uint256(10_000e18))
-        );
+        address tA = deployCode("src/periphery/test/ERC20.sol:ERC20", abi.encode(uint256(10_000e18)));
+        address tB = deployCode("src/periphery/test/ERC20.sol:ERC20", abi.encode(uint256(10_000e18)));
 
-        factory = IUniswapV2Factory(
-            deployCode(
-                "UniswapV2Factory.sol:UniswapV2Factory",
-                abi.encode(address(this))
-            )
-        );
+        factory = IUniswapV2Factory(deployCode("UniswapV2Factory.sol:UniswapV2Factory", abi.encode(address(this))));
         factory.createPair(tA, tB);
         pair = IUniswapV2Pair(factory.getPair(tA, tB));
 
@@ -76,16 +59,13 @@ contract ExampleOracleSimpleTest is Test {
         // Deploy oracle
         oracle = IExampleOracleSimple(
             deployCode(
-                "ExampleOracleSimple.sol:ExampleOracleSimple",
-                abi.encode(address(factory), token0addr, token1addr)
+                "ExampleOracleSimple.sol:ExampleOracleSimple", abi.encode(address(factory), token0addr, token1addr)
             )
         );
     }
 
     function _transfer(address token, address to, uint256 amount) internal {
-        (bool ok, ) = token.call(
-            abi.encodeWithSignature("transfer(address,uint256)", to, amount)
-        );
+        (bool ok,) = token.call(abi.encodeWithSignature("transfer(address,uint256)", to, amount));
         require(ok);
     }
 
@@ -93,7 +73,7 @@ contract ExampleOracleSimpleTest is Test {
     // update: requires 24-hour period, then snapshots TWAP prices
     // -------------------------------------------------------------------------
     function test_update() public {
-        (, , uint32 blockTs) = pair.getReserves();
+        (,, uint32 blockTs) = pair.getReserves();
 
         // < 24 h → revert
         vm.warp(blockTs + 23 hours);
@@ -104,10 +84,7 @@ contract ExampleOracleSimpleTest is Test {
         vm.warp(blockTs + 24 hours);
         oracle.update();
 
-        (uint256 expectedPrice0, uint256 expectedPrice1) = _encodePrice(
-            TOKEN0_AMOUNT,
-            TOKEN1_AMOUNT
-        );
+        (uint256 expectedPrice0, uint256 expectedPrice1) = _encodePrice(TOKEN0_AMOUNT, TOKEN1_AMOUNT);
 
         // UQ112x112 values are stored as uint224 in the first word of the struct
         assertEq(oracle.price0Average(), uint224(expectedPrice0));
