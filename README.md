@@ -78,6 +78,20 @@ forge inspect UniswapV2Pair bytecode | cast keccak
 ```
 
 in `src/periphery/libraries/UniswapV2Library.sol` line 24, replacing the existing `INIT_CODE_HASH` value.
+Remove the initial `0x` from the output and add `hex''` around it. It should look like this:
+
+```solidity
+    // calculates the CREATE2 address for a pair without making any external calls
+    function pairFor(address factory, address tokenA, address tokenB) internal pure returns (address pair) {
+        (address token0, address token1) = sortTokens(tokenA, tokenB);
+        pair = address(uint(keccak256(abi.encodePacked(
+                hex'ff',
+                factory,
+                keccak256(abi.encodePacked(token0, token1)),
+                hex'275ac823fa25af9c51db1d0492a8b541d800657d8f2c82bf384eb48e8812344c' // init code hash
+            ))));
+    }
+```
 
 ### Test
 
